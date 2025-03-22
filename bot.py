@@ -6,6 +6,7 @@ from aiogram import Bot, Dispatcher, types
 from dotenv import load_dotenv
 
 from db.engine import create_db, drop_db, session_maker
+from handlers.file import file_router
 from handlers.user import user_router
 from keyboards.bot_cmds_list import bot_cmds
 from middlewares.db import DataBaseSession
@@ -23,6 +24,7 @@ logging.basicConfig(level=logging.INFO)
 dp: Dispatcher = Dispatcher()
 bot: Bot = Bot(token=TELEGRAM_TOKEN)
 dp.include_router(user_router)
+dp.include_router(file_router)
 
 
 async def on_startup(bot):
