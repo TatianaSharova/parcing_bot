@@ -54,5 +54,8 @@ pip install -r requirements.txt
 python bot.py
 ```
 
+### Как пользоваться:
+Пользователь открывает тг бот, нажимает кнопку загрузить файл, отправляет файл формата .xlsx или .xls, в котором заполнены столбцы title, url, xpath
+
 ### Автор
 [Татьяна Шарова](https://github.com/TatianaSharova)
