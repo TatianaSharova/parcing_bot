@@ -6,7 +6,7 @@ class Base(DeclarativeBase):
     pass
 
 
-class Data(Base):
+class Source(Base):
     '''
     Модель для хранения информации о сайтах по продаже зюбликов.
     '''
@@ -14,6 +14,6 @@ class Data(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True,
                                     autoincrement=True)
-    title: Mapped[str] = mapped_column(String(20))
-    url: Mapped[str] = mapped_column(String(50))
-    xpath: Mapped[str] = mapped_column(String(50))
+    title: Mapped[str] = mapped_column(String(20), nullable=False)
+    url: Mapped[str] = mapped_column(String(50), unique=True)
+    xpath: Mapped[str] = mapped_column(String(50), nullable=False)
