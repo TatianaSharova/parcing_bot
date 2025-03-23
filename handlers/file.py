@@ -1,11 +1,15 @@
+import os
+
 from aiogram import Bot, F, Router, types
 from aiogram.filters import Command, StateFilter, or_f
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from keyboards import reply
+from logger import logging
 
-from .utils import validate_file
+from .utils import download_file, save_source_in_db, validate_file
 
 file_router = Router()
 
@@ -44,22 +48,42 @@ async def cancel_handler(message: types.Message, state: FSMContext) -> None:
 
 
 @file_router.message(AddFile.file, F.document)
-async def get_file(message: types.Message, state: FSMContext,
-                   bot: Bot):
-    '''Обрабатывает полученный документ.'''
+async def handle_file(message: types.Message, state: FSMContext,
+                      bot: Bot, session: AsyncSession) -> None:
+    '''Обрабатывает полученный документ:
+    -проверяет формат файла
+    -скачивает файл локально
+    -загружает данные из файла в бд
+    -уведомляет, сколько сайтов из файла добавлены в бд
+    -удаляет скачанный файл
+    '''
     file = await bot.get_file(message.document.file_id)
 
     if await validate_file(file) is False:
         await message.answer(
             'Неподходящий формат. '
-            'Пришли файл из слудующих форматов: xlsx, scv.'
+            'Пришли файл из следующих форматов: xlsx, xls.'
         )
         return
 
-    await message.answer(
-        '!',
-        reply_markup=types.ReplyKeyboardRemove()
-    )
+    file_path = await download_file(file, bot)
+
+    added_count_sources = await save_source_in_db(file_path, session, message)
+
+    if added_count_sources > 0:
+        await message.answer(
+            f'Добавлено {added_count_sources} новых сайтов в базу.')
+    else:
+        await message.answer('В базу не были добавлены новые сайты.')
+
+    try:
+        os.remove(file_path)
+        logging.info(f' Файл {file_path} удален.')
+    except PermissionError:
+        logging.error(f' Файл {file_path} не удален, занят другим процессом.')
+    except Exception as e:
+        logging.error(f'Не удалось удалить {file_path}: {e}')
+
     await state.clear()
     return
 
@@ -68,7 +92,7 @@ async def get_file(message: types.Message, state: FSMContext,
 async def get_not_file(message: types.Message, state: FSMContext):
     '''Обрабатывает сообщение неподходящего типа при ожидании документа.'''
     await message.answer(
-        'Пришлите exel-файл. Доступные форматы: xlsx, scv. '
+        'Пришли exel-файл. Доступные форматы: xlsx, scv. '
         'Если возникла проблема и ты хочешь прерваться, в '
         'меню нажми на команду "Отмена".',
         reply_markup=types.ReplyKeyboardRemove()
