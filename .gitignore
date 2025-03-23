@@ -2,3 +2,6 @@
 venv/
 *.db
 __pycache__
+*.xlsx
+*.scv
+*.xls
